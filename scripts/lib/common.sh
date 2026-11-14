@@ -132,7 +132,9 @@ wait_for() {
 # ---- 角色判断（依赖 inventory.sh 派生数组）----
 is_master() {
   local ip="$1" m
-  for m in "${MASTER_IPS[@]}"; do [[ "${m}" == "${ip}" ]] && return 0; done
+  for m in "${MASTER_IPS[@]}"; do
+    if [[ "${m}" == "${ip}" ]]; then return 0; fi
+  done
   return 1
 }
 is_etcd() { is_master "$1"; }
