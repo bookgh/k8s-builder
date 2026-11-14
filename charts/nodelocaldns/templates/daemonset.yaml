@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: {{ include "nodelocaldns.name" . }}
-  namespace: {{ include "nodelocaldns.namespace" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "nodelocaldns.labels" . | nindent 4 }}
 spec:
@@ -11,20 +11,24 @@ spec:
       maxUnavailable: 10%
   selector:
     matchLabels:
-      k8s-app: {{ include "nodelocaldns.name" . }}
+      k8s-app: node-local-dns
   template:
     metadata:
       labels:
-        k8s-app: {{ include "nodelocaldns.name" . }}
+        k8s-app: node-local-dns
       annotations:
-        prometheus.io/port: "{{ .Values.config.metricsPort }}"
+        prometheus.io/port: {{ .Values.config.metricsPort | quote }}
         prometheus.io/scrape: "true"
     spec:
       priorityClassName: {{ .Values.priorityClassName }}
       serviceAccountName: {{ include "nodelocaldns.serviceAccountName" . }}
       hostNetwork: true
-      # Don't use cluster DNS.
+      # 官方模板：Don't use cluster DNS.
       dnsPolicy: Default
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
       tolerations:
         {{- toYaml .Values.tolerations | nindent 8 }}
       containers:

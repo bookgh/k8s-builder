@@ -1,40 +1,46 @@
 # =============================================================================
 # nodelocaldns values
-# 以上游 Kubernetes 官方 addon 为准：
-#   cluster/addons/dns/nodelocaldns/nodelocaldns.yaml (master)
-# 镜像 tag 以该 yaml 为准：registry.k8s.io/dns/k8s-dns-node-cache:1.27.1
+# 以 Kubernetes 官方 addon 模板为准：
+#   cluster/addons/dns/nodelocaldns/nodelocaldns.yaml
+# 占位符与官方 PILLAR 对应关系：
+#   __PILLAR__DNS__DOMAIN__      -> config.clusterDomain
+#   __PILLAR__LOCAL__DNS__       -> config.localDNS
+#   __PILLAR__DNS__SERVER__      -> config.dnsServer
+#   __PILLAR__CLUSTER__DNS__     -> config.dnsServer
+#   __PILLAR__UPSTREAM__SERVERS__-> config.upstreamServers
 # =============================================================================
-
-namespace: kube-system
 
 image:
   repository: registry.k8s.io/dns/k8s-dns-node-cache
-  tag: "1.27.1"
+  tag: "1.37.2"
   pullPolicy: IfNotPresent
 
 config:
-  # __PILLAR__DNS__DOMAIN__
-  domain: cluster.local
-  # __PILLAR__LOCAL__DNS__：节点本地缓存 IP
+  # 集群域名
+  clusterDomain: cluster.local
+  # 节点本地缓存 IP（hostNetwork，勿与节点 IP 冲突）
   localDNS: 169.254.20.10
-  # __PILLAR__DNS__SERVER__：集群 DNS Service IP（与 clusterDNS 一致）
+  # 集群 DNS Service IP（kube-dns / coredns ClusterIP）
   dnsServer: 10.96.0.10
-  # __PILLAR__CLUSTER__DNS__：集群内域名转发目标
-  clusterDNS: 10.96.0.10
-  # __PILLAR__UPSTREAM__SERVERS__：集群外域名上游，空格分隔多个；
-  # 留空则回退读取节点 /etc/resolv.conf。
-  upstreamServers: ""
+  # 集群外部上游 DNS 服务器（.:53 段 forward 使用）
+  upstreamServers:
+    - 8.8.8.8
+    - 8.8.4.4
   metricsPort: 9253
   healthPort: 8080
 
-priorityClassName: system-node-critical
+serviceAccount:
+  create: true
+  name: node-local-dns
 
 resources:
   requests:
     cpu: 25m
     memory: 5Mi
 
-# 与上游 nodelocaldns.yaml 保持一致。
+priorityClassName: system-node-critical
+
+# 与官方模板一致的容忍策略。
 tolerations:
   - key: CriticalAddonsOnly
     operator: Exists

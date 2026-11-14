@@ -2,19 +2,22 @@
 node-local-dns
 {{- end }}
 
-{{- define "nodelocaldns.namespace" -}}
-{{- .Values.namespace | default "kube-system" }}
+{{- define "nodelocaldns.fullname" -}}
+{{- default "node-local-dns" .Values.serviceAccount.name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{- define "nodelocaldns.labels" -}}
-k8s-app: {{ include "nodelocaldns.name" . }}
+k8s-app: node-local-dns
 kubernetes.io/cluster-service: "true"
-app.kubernetes.io/name: nodelocaldns
+addonmanager.kubernetes.io/mode: Reconcile
+app.kubernetes.io/name: {{ include "nodelocaldns.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{- define "nodelocaldns.serviceAccountName" -}}
-{{- include "nodelocaldns.name" . }}
+{{- if .Values.serviceAccount.create }}
+{{- .Values.serviceAccount.name | default "node-local-dns" }}
+{{- else }}
+{{- .Values.serviceAccount.name | default "default" }}
+{{- end }}
 {{- end }}

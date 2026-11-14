@@ -1,9 +1,9 @@
 apiVersion: v2
 name: nodelocaldns
-description: NodeLocal DNSCache DaemonSet, mirrored from Kubernetes upstream addon (nodelocaldns.yaml)
+description: NodeLocal DNSCache, aligned with the upstream Kubernetes addon (cluster/addons/dns/nodelocaldns) for Kubernetes 1.37
 type: application
 version: "1.37.2"
-appVersion: "1.27.1"
+appVersion: "1.37.2"
 keywords:
   - dns
   - nodelocaldns
