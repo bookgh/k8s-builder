@@ -91,8 +91,8 @@ ssh_run "${HARBOR_NODE_IP}" "sed -i '/^database:/,/^[a-z]/ s/^  password: .*/  p
 # 自检：hostname 与管理员口令已落到模板
 ssh_run "${HARBOR_NODE_IP}" "grep -q '^hostname: ${HARBOR_HOST}$' /home/harbor/harbor.yml && grep -q '^harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}$' /home/harbor/harbor.yml"
 
-# ---- 4. 执行安装（含 Trivy 漏洞扫描）----
-ssh_run "${HARBOR_NODE_IP}" "cd /home/harbor && ./install.sh --with-trivy"
+# ---- 4. 执行安装（含 Trivy 漏洞扫描；TERM=dumb 避免非交互 SSH 下 tput 报错）----
+ssh_run "${HARBOR_NODE_IP}" "cd /home/harbor && TERM=dumb ./install.sh --with-trivy"
 
 # ---- 5. 全 K8s 节点 hosts 解析确认（02-init 已写入，此处兜底补写）----
 for ip in "${ALL_IPS[@]}"; do
