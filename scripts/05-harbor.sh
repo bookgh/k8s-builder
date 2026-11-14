@@ -35,8 +35,9 @@ if ! ssh "${SSH_OPTS[@]}" "root@${HARBOR_NODE_IP}" "true" 2>/dev/null; then
     -i ~/.ssh/id_rsa.pub "root@${HARBOR_NODE_IP}" >/dev/null
 fi
 
-# 本地留痕目录（docker unit / harbor.yml）
-ensure_dir "${cluster_dir}/containerd-cfg"
+# 本地留痕目录（docker.service 系统单元）
+sys_cfg="${cluster_dir}/sys-cfg"
+ensure_dir "${sys_cfg}"
 
 # ---- 2. Harbor 节点安装 docker static + compose（仅 Harbor 编排使用）----
 log_info "在 Harbor 节点安装 docker 与 compose"
@@ -47,9 +48,9 @@ ssh_run "${HARBOR_NODE_IP}" "mkdir -p /opt/docker && tar xzf /root/docker.tgz -C
 remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/bin/docker-compose" "/usr/bin/docker-compose"
 ssh_run "${HARBOR_NODE_IP}" "chmod +x /usr/bin/docker /usr/bin/dockerd /usr/bin/docker-proxy /usr/bin/docker-compose"
 
-# docker systemd unit（Harbor 节点独立）
+# docker systemd unit（Harbor 节点独立；留痕 sys-cfg/docker.service）
 ssh_run "${HARBOR_NODE_IP}" "mkdir -p /etc/docker"
-cat > "${cluster_dir}/containerd-cfg/docker-harbor.service" <<'EOF'
+cat > "${sys_cfg}/docker.service" <<'EOF'
 [Unit]
 Description=Docker Application Container Engine
 After=network.target
@@ -60,32 +61,27 @@ ExecStart=/usr/bin/dockerd
 Restart=always
 RestartSec=5
 LimitNOFILE=infinity
+Delegate=yes
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
 EOF
-scp_to "${HARBOR_NODE_IP}" "${cluster_dir}/containerd-cfg/docker-harbor.service" "/etc/systemd/system/docker.service"
+scp_to "${HARBOR_NODE_IP}" "${sys_cfg}/docker.service" "/etc/systemd/system/docker.service"
 systemd_enable "${HARBOR_NODE_IP}" docker
 
-# ---- 3. 解压 Harbor 安装器并渲染 harbor.yml ----
+# ---- 3. 解压 Harbor 安装器，在模板 harbor.yml 上替换必填项 ----
 remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/tarball/harbor-offline-installer-v${HARBOR_VER}.tgz" "/root/harbor.tgz"
 ssh_run "${HARBOR_NODE_IP}" "rm -rf /root/harbor && mkdir -p /root/harbor && tar xzf /root/harbor.tgz -C /root/harbor --strip-components=1"
 
-cat > "${cluster_dir}/containerd-cfg/harbor.yml" <<EOF
-hostname: ${HARBOR_HOST}
-http:
-  port: ${HARBOR_HTTP_PORT}
-harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}
-database:
-  password: ${HARBOR_ADMIN_PASSWORD}
-data_volume: /data/harbor
-log:
-  level: info
-  local:
-    rotate_count: 5
-    rotate_size: 200M
-EOF
-scp_to "${HARBOR_NODE_IP}" "${cluster_dir}/containerd-cfg/harbor.yml" "/root/harbor/harbor.yml"
+# 基于安装包模板替换 hostname / http.port / 管理员口令 / 数据库口令，其余默认段保留，不手写整份 yml
+ssh_run "${HARBOR_NODE_IP}" "sed -i 's/^hostname: .*/hostname: ${HARBOR_HOST}/' /root/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "sed -i '/^http:/,/^[a-z]/ s/^  port: .*/  port: ${HARBOR_HTTP_PORT}/' /root/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "sed -i 's/^harbor_admin_password: .*/harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}/' /root/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "sed -i '/^database:/,/^[a-z]/ s/^  password: .*/  password: ${HARBOR_ADMIN_PASSWORD}/' /root/harbor/harbor.yml"
+
+# 自检：hostname 与管理员口令已落到模板
+ssh_run "${HARBOR_NODE_IP}" "grep -q '^hostname: ${HARBOR_HOST}$' /root/harbor/harbor.yml && grep -q '^harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}$' /root/harbor/harbor.yml"
 
 # ---- 4. 执行安装 ----
 ssh_run "${HARBOR_NODE_IP}" "cd /root/harbor && ./install.sh"
