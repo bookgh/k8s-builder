@@ -13,6 +13,8 @@ STAGE="01-ssh"
 log_info "===== ${STAGE} 配置 SSH 免密 ====="
 
 # ---- 本机密钥对 ----
+ensure_dir ~/.ssh
+chmod 700 ~/.ssh
 if [[ ! -f ~/.ssh/id_rsa ]]; then
   log_info "生成本机 SSH 密钥对"
   ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa -q
@@ -43,7 +45,8 @@ for ip in "${ALL_IPS[@]}"; do
   log_info "${ip} 推送公钥"
   sshpass -p "${SSH_PASSWORD}" ssh-copy-id \
     -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    -i ~/.ssh/id_rsa.pub "root@${ip}" >/dev/null
+    -i ~/.ssh/id_rsa.pub "root@${ip}" >/dev/null \
+    || { log_error "${ip} 公钥推送失败（检查 SSH_PASSWORD / 网络 / 主机可达性）"; exit 1; }
 
   # 免密验证
   ssh "${SSH_OPTS[@]}" "root@${ip}" "hostname" >/dev/null \
