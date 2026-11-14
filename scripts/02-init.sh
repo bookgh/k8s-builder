@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 02-init.sh —— 系统初始化（Rocky Linux 9，全部节点）
+# 02-init.sh —— 系统初始化（Rocky Linux 9，集群节点 + 独立 Harbor 节点）
 # 主机名 / hosts / 防火墙 / SELinux / Swap / 模块 / sysctl / ulimit / journald / PATH / 基础包
 # =============================================================================
 set -euo pipefail
@@ -27,7 +27,7 @@ ensure_dir "${SYS_CFG}"
     echo "${ALL_IPS[i]} ${ALL_NAMES[i]}"
   done
   if [[ "${INSTALL_HARBOR}" == "true" ]]; then
-    echo "${HARBOR_NODE_IP} ${HARBOR_HOST}"
+    echo "${HARBOR_NODE_IP} harbor ${HARBOR_HOST}"
   fi
 } > "${SYS_CFG}/hosts"
 
@@ -161,8 +161,8 @@ init_node() {
   log_ok "${name}(${ip}) 初始化完成"
 }
 
-for ((i=0; i<${#ALL_IPS[@]}; i++)); do
-  init_node "${ALL_IPS[i]}" "${ALL_NAMES[i]}"
+for ((i=0; i<${#INIT_IPS[@]}; i++)); do
+  init_node "${INIT_IPS[i]}" "${INIT_NAMES[i]}"
 done
 
 # cgroup v2 检测提示（Rocky 9 默认 v2）
