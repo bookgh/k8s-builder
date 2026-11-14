@@ -35,6 +35,9 @@ if ! ssh "${SSH_OPTS[@]}" "root@${HARBOR_NODE_IP}" "true" 2>/dev/null; then
     -i ~/.ssh/id_rsa.pub "root@${HARBOR_NODE_IP}" >/dev/null
 fi
 
+# 本地留痕目录（docker unit / harbor.yml）
+ensure_dir "${cluster_dir}/containerd-cfg"
+
 # ---- 2. Harbor 节点安装 docker static + compose（仅 Harbor 编排使用）----
 log_info "在 Harbor 节点安装 docker 与 compose"
 remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/tarball/docker-${DOCKER_VER}.tgz" "/root/docker.tgz"
