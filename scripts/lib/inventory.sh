@@ -62,6 +62,23 @@ if [[ "${INSTALL_HARBOR:-false}" == "true" && -n "${HARBOR_NODE_IP:-}" ]]; then
   fi
 fi
 
+# ---- NFS 授权网段：留空取首个 Master IP 所在 /24 ----
+if [[ "${ENABLE_NFS:-false}" == "true" && -z "${NFS_ALLOW_CIDR:-}" ]]; then
+  NFS_ALLOW_CIDR="$(echo "${MASTER_IPS[0]}" | awk -F. '{print $1"."$2"."$3".0/24"}')"
+fi
+
+# ---- NFS 节点纳入免密 / 初始化（不在 NODES 表时追加）----
+if [[ "${ENABLE_NFS:-false}" == "true" && -n "${NFS_SERVER_IP:-}" ]]; then
+  nfs_in_list="false"
+  for ip in "${ALL_IPS[@]}"; do
+    if [[ "${ip}" == "${NFS_SERVER_IP}" ]]; then nfs_in_list="true"; fi
+  done
+  if [[ "${nfs_in_list}" != "true" ]]; then
+    INIT_IPS+=("${NFS_SERVER_IP}")
+    INIT_NAMES+=("${NFS_HOSTNAME:-nfs}")
+  fi
+fi
+
 # ---- 部署节点：未配置则取首个 Master ----
 # 部署节点可为 NODES 表内或表外任意可达机器，不要求属于 Master 列表。
 if [[ -z "${DEPLOY_IP:-}" ]]; then DEPLOY_IP="${MASTER_IPS[0]}"; fi
@@ -106,6 +123,9 @@ inventory_summary() {
   echo "Master/Etcd   : ${MASTER_IPS[*]}"
   echo "Worker        : ${WORKER_IPS[*]}"
   echo "Harbor        : INSTALL_HARBOR=${INSTALL_HARBOR}  ${HARBOR_REGISTRY}"
+  if [[ "${ENABLE_NFS:-false}" == "true" ]]; then
+    echo "NFS 导出      : ${NFS_SERVER_IP}:${NFS_EXPORT_DIR} 授权 ${NFS_ALLOW_CIDR}"
+  fi
   echo "离线物料      : ${offline_dir}"
   echo "配置留痕      : ${cluster_dir}"
   echo "====================="
