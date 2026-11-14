@@ -66,6 +66,12 @@ done
   log_error "RUNTIME 仅支持 containerd|docker，当前 ${RUNTIME}"; exit 1
 }
 
+# ---- 5.1 可选组件变量校验 ----
+if [[ "${ENABLE_NFS:-false}" == "true" ]]; then
+  require_var NFS_SERVER_IP
+  require_var NFS_EXPORT_DIR
+fi
+
 # ---- 6. 规划摘要 ----
 inventory_summary
 
