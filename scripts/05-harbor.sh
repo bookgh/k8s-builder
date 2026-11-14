@@ -42,11 +42,15 @@ ensure_dir "${sys_cfg}"
 # ---- 2. Harbor 节点安装 docker static + compose（仅 Harbor 编排使用）----
 log_info "在 Harbor 节点安装 docker 与 compose"
 remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/tarball/docker-${DOCKER_VER}.tgz" "/root/docker.tgz"
-ssh_run "${HARBOR_NODE_IP}" "mkdir -p /opt/docker && tar xzf /root/docker.tgz -C /opt/docker --strip-components=1 && \
-  cp -f /opt/docker/docker /opt/docker/dockerd /usr/bin/ && \
-  cp -f /opt/docker/docker-proxy /usr/bin/ 2>/dev/null || true"
-remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/bin/docker-compose" "/usr/bin/docker-compose"
-ssh_run "${HARBOR_NODE_IP}" "chmod +x /usr/bin/docker /usr/bin/dockerd /usr/bin/docker-proxy /usr/bin/docker-compose"
+ssh_run "${HARBOR_NODE_IP}" "mkdir -p /opt/docker /usr/local/bin && tar xzf /root/docker.tgz -C /opt/docker --strip-components=1 && \
+  ln -sf /opt/docker/runc /usr/local/bin/ && \
+  ln -sf /opt/docker/containerd /usr/local/bin/ && \
+  ln -sf /opt/docker/docker /usr/local/bin/ && \
+  ln -sf /opt/docker/dockerd /usr/local/bin/ && \
+  ln -sf /opt/docker/docker-proxy /usr/local/bin/ && \
+  chmod +x /opt/docker/runc /opt/docker/containerd /opt/docker/docker /opt/docker/dockerd /opt/docker/docker-proxy"
+remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/bin/docker-compose" "/usr/local/bin/docker-compose"
+ssh_run "${HARBOR_NODE_IP}" "chmod +x /usr/local/bin/docker-compose"
 
 # docker systemd unit（Harbor 节点独立；留痕 sys-cfg/docker.service）
 ssh_run "${HARBOR_NODE_IP}" "mkdir -p /etc/docker"
@@ -57,7 +61,7 @@ After=network.target
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/dockerd
+ExecStart=/usr/local/bin/dockerd
 Restart=always
 RestartSec=5
 LimitNOFILE=infinity
