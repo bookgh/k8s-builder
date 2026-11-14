@@ -7,7 +7,7 @@
 #   source "${SCRIPT_DIR}/env.sh"
 #
 # 说明：
-#   - 敏感值（SSH 密码、Harbor 管理员口令）不写入本文件，由环境变量注入。
+#   - 敏感值（SSH 密码、Harbor 管理员口令）优先由环境变量注入；也可在下方对应变量填写。
 #   - 本文件只声明变量；数组派生与角色拆分在 lib/inventory.sh 完成。
 # =============================================================================
 
@@ -41,8 +41,10 @@ NODES=(
   "192.168.10.68 worker-05"
 )
 MASTER_COUNT=3
-# 部署节点（表中第一个 Master）；留空则自动取 NODES 首项 IP
-DEPLOY_IP="192.168.10.61"
+# 部署节点 IP：可为 NODES 表内或表外任意可达机器（不要求是 Master）；留空则取首项 Master IP
+DEPLOY_IP="192.168.10.60"
+# SSH 登录口令：可在此填写，或由环境变量 SSH_PASSWORD 注入；留空则要求节点已免密
+SSH_PASSWORD=""
 
 # -----------------------------------------------------------------------------
 # 2. 集群网络
@@ -89,8 +91,10 @@ INSTALL_HARBOR="false"
 HARBOR_NODE_IP="192.168.10.70"
 HARBOR_HOST="harbor.192.168.10.70.nip.io"
 HARBOR_HTTP_PORT="80"
-# Harbor 项目名（推送镜像时使用）；管理员口令由环境变量 HARBOR_ADMIN_PASSWORD 注入
+# Harbor 项目名（推送镜像时使用）
 HARBOR_PROJECT="k8s"
+# Harbor 管理员口令：可在此填写，或由环境变量 HARBOR_ADMIN_PASSWORD 注入
+HARBOR_ADMIN_PASSWORD=""
 
 # -----------------------------------------------------------------------------
 # 5. Calico
