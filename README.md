@@ -9,7 +9,7 @@ k8s-builder/
 ├── versions.env                  # 非 Chart 组件版本（二进制 / 压缩包 / 镜像）
 ├── charts.yaml                   # Chart 仓库、名称与版本（Calico / CoreDNS / NodeLocalDNS）
 ├── nginx/
-│   └── Dockerfile                # 多阶段编译 stream 专用 nginx，PGP 签名校验
+│   └── Dockerfile                # 多阶段编译 stream 专用 nginx 二进制
 ├── charts/
 │   └── nodelocaldns/             # 本地 Chart 骨架（Kubernetes 1.37）
 ├── ci-scripts/
@@ -47,5 +47,5 @@ k8s-builder/
 
 ## 说明
 
-- 仅 `nginx/Dockerfile` 内做完整性校验，采用 nginx 官方 PGP 签名（`.asc`）校验；其余上游资产仅做下载成功校验。
+- `nginx/Dockerfile` 直接从 nginx.org 下载源码编译，不做本地 PGP 签名 / SHA256 校验；其余上游资产仅做下载成功校验。
 - Chart 镜像解析基于 `helm template` 渲染结果提取 `image` 字段；由 CR/后续配置注入的镜像可能无法在模板期提取，脚本会跳过并告警。

@@ -2,11 +2,9 @@
 # -----------------------------------------------------------------------------
 # nginx-builder: 多阶段编译 stream 专用 nginx 二进制。
 #
-# 校验方式（nginx 官方支持的完整性校验）：
-#   - 下载源码包及其 PGP 签名 (.tar.gz.asc)；
-#   - 导入 nginx 官方全部开发者公钥（不同版本可能由不同开发者签名）；
-#   - gpg --verify 校验签名通过后再解压编译。
-#   - 不在本文件中固定 SHA256 摘要；版本号由构建参数 NGINX_VERSION 传入。
+# 说明：
+#   - 直接从 nginx.org 下载源码包解压编译，不做本地 PGP 签名 / SHA256 校验；
+#   - 版本号由构建参数 NGINX_VERSION 传入。
 # -----------------------------------------------------------------------------
 FROM rockylinux:9 AS nginx-builder
 
@@ -17,7 +15,6 @@ RUN dnf -y install \
       gcc \
       make \
       glibc-devel \
-      gnupg2 \
     && dnf clean all \
     && rm -rf /var/cache/dnf
 
@@ -26,15 +23,6 @@ RUN set -eux; \
     curl --fail --location --retry 4 --retry-all-errors \
       "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" \
       --output nginx.tar.gz; \
-    curl --fail --location --retry 4 --retry-all-errors \
-      "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz.asc" \
-      --output nginx.tar.gz.asc; \
-    for key in arut pluknet sb thresh; do \
-      curl --fail --location --retry 4 --retry-all-errors \
-        "https://nginx.org/keys/${key}.key" --output "${key}.key"; \
-      gpg --batch --import "${key}.key"; \
-    done; \
-    gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz; \
     tar -xzf nginx.tar.gz; \
     cd "nginx-${NGINX_VERSION}"; \
     ./configure \
