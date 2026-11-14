@@ -86,8 +86,16 @@ package_chart_images() {
   mkdir -p "${out_dir}"
 
   log_info "[镜像解析] ${key} (${chart_ref})"
-  local rendered images safe_name image
-  rendered="$(helm template "${key}" "${chart_ref}" 2>/dev/null || true)"
+  local rendered images safe_name image tpl_err tpl_log
+  tpl_log="$(mktemp)"
+  rendered="$(helm template "${key}" "${chart_ref}" 2>"${tpl_log}" || true)"
+  tpl_err="$(grep -v '^[[:space:]]*$' "${tpl_log}" || true)"
+  rm -f "${tpl_log}"
+
+  if [ -z "${rendered}" ] && [ -n "${tpl_err}" ]; then
+    log_warn "[镜像解析] ${key} helm template 未渲染出清单，输出："
+    printf '%s\n' "${tpl_err}" | sed 's/^/    /' >&2
+  fi
 
   mapfile -t images < <(extract_images "${rendered}")
 

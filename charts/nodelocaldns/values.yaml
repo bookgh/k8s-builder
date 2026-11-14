@@ -12,7 +12,7 @@
 
 image:
   repository: registry.k8s.io/dns/k8s-dns-node-cache
-  tag: "1.37.2"
+  tag: "1.27.1"
   pullPolicy: IfNotPresent
 
 config:
@@ -44,7 +44,7 @@ priorityClassName: system-node-critical
 tolerations:
   - key: CriticalAddonsOnly
     operator: Exists
-  - effect: NoExecute
+    effect: NoExecute
     operator: Exists
   - effect: NoSchedule
     operator: Exists
