@@ -49,8 +49,8 @@ ALL_IPS=("${MASTER_IPS[@]}" "${WORKER_IPS[@]}")
 ALL_NAMES=("${MASTER_NAMES[@]}" "${WORKER_NAMES[@]}")
 
 # ---- 部署节点：未配置则取首个 Master ----
+# 部署节点可为 NODES 表内或表外任意可达机器，不要求属于 Master 列表。
 if [[ -z "${DEPLOY_IP:-}" ]]; then DEPLOY_IP="${MASTER_IPS[0]}"; fi
-is_master "${DEPLOY_IP}" || { log_error "DEPLOY_IP=${DEPLOY_IP} 不在 Master 列表"; exit 1; }
 
 # ---- 派生：etcd 成员与 endpoints ----
 ETCD_INITIAL_CLUSTER="$(
@@ -94,5 +94,5 @@ inventory_summary() {
   echo "Harbor        : INSTALL_HARBOR=${INSTALL_HARBOR}  ${HARBOR_REGISTRY}"
   echo "离线物料      : ${offline_dir}"
   echo "配置留痕      : ${cluster_dir}"
-  echo "===================="
+  echo "====================="
 }
