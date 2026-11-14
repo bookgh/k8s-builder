@@ -80,22 +80,29 @@ scp_to() {
 }
 
 # ---- HTTP（经部署节点 caddy）----
+# 说明：不使用 curl -C - 断点续传——静态文件已完整时续传 Range 越界会返回 416。
+# 目标已存在且非空则跳过；否则整包下载。
 # fetch_http <rel_path> <local_dest>
 fetch_http() {
   local rel="$1" dest="$2"
   ensure_dir "$(dirname "${dest}")"
-  curl -fsSL --retry 4 --retry-delay 2 -C - \
-    -o "${dest}" "${REPO_BASE}/${rel}"
+  if [[ -s "${dest}" ]]; then
+    log_info "已存在，跳过下载：${dest}"
+    return 0
+  fi
+  curl -fsSL --retry 4 --retry-delay 2 -o "${dest}" "${REPO_BASE}/${rel}"
   if [[ ! -s "${dest}" ]]; then
     log_error "下载失败或产物为空：${REPO_BASE}/${rel}"; exit 1
   fi
 }
 
-# remote_fetch <ip> <rel_path> <remote_dest>：远端节点经 caddy 拉取
+# remote_fetch <ip> <rel_path> <remote_dest>：远端节点经 caddy 拉取（存在非空则跳过，不续传）
 remote_fetch() {
   local ip="$1" rel="$2" remote="$3"
+  local remote_dir
+  remote_dir="$(dirname "${remote}")"
   ssh "${SSH_OPTS[@]}" "root@${ip}" \
-    "mkdir -p '$(dirname "${remote}")' && curl -fsSL --retry 4 --retry-delay 2 -C - -o '${remote}' '${REPO_BASE}/${rel}'"
+    "mkdir -p '${remote_dir}' && { [ -s '${remote}' ] || curl -fsSL --retry 4 --retry-delay 2 -o '${remote}' '${REPO_BASE}/${rel}'; }"
   local rc=$?
   if [[ ${rc} -ne 0 ]]; then
     log_error "远端 ${ip} 拉取失败：${rel} -> ${remote}（rc=${rc}）"; exit "${rc}"
