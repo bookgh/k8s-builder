@@ -76,7 +76,6 @@ systemd_enable "${HARBOR_NODE_IP}" docker
 
 # ---- 3. 解压 Harbor 安装器，在模板 harbor.yml 上替换必填项 ----
 remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/tarball/harbor-offline-installer-v${HARBOR_VER}.tgz" "/root/harbor.tgz"
-ssh_run "${HARBOR_NODE_IP}" "rm -rf /root/harbor && mkdir -p /root/harbor && tar xzf /root/harbor --strip-components=1" 2>/dev/null || true
 ssh_run "${HARBOR_NODE_IP}" "rm -rf /root/harbor && mkdir -p /root/harbor && tar xzf /root/harbor.tgz -C /root/harbor --strip-components=1"
 
 # 基于安装包模板替换 hostname / http.port / 管理员口令 / 数据库口令，其余默认段保留，不手写整份 yml
