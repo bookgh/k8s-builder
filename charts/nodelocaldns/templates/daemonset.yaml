@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "nodelocaldns.fullname" . }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "nodelocaldns.name" . }}
+  namespace: {{ include "nodelocaldns.namespace" . }}
   labels:
     {{- include "nodelocaldns.labels" . | nindent 4 }}
 spec:
@@ -11,24 +11,22 @@ spec:
       maxUnavailable: 10%
   selector:
     matchLabels:
-      k8s-app: node-local-dns
+      k8s-app: {{ include "nodelocaldns.name" . }}
   template:
     metadata:
       labels:
-        k8s-app: node-local-dns
+        k8s-app: {{ include "nodelocaldns.name" . }}
       annotations:
-        prometheus.io/port: {{ .Values.config.metricsPort | quote }}
+        prometheus.io/port: "{{ .Values.config.metricsPort }}"
         prometheus.io/scrape: "true"
     spec:
       priorityClassName: {{ .Values.priorityClassName }}
       serviceAccountName: {{ include "nodelocaldns.serviceAccountName" . }}
       hostNetwork: true
-      # 上游默认 Default：不使用集群 DNS，避免与本地缓存循环。
+      # Don't use cluster DNS.
       dnsPolicy: Default
       tolerations:
         {{- toYaml .Values.tolerations | nindent 8 }}
-      nodeSelector:
-        {{- toYaml .Values.nodeSelector | nindent 8 }}
       containers:
         - name: node-cache
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -47,14 +45,14 @@ spec:
               add:
                 - NET_ADMIN
           ports:
-            - name: dns
-              containerPort: 53
+            - containerPort: 53
+              name: dns
               protocol: UDP
-            - name: dns-tcp
-              containerPort: 53
+            - containerPort: 53
+              name: dns-tcp
               protocol: TCP
-            - name: metrics
-              containerPort: {{ .Values.config.metricsPort }}
+            - containerPort: {{ .Values.config.metricsPort }}
+              name: metrics
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -82,7 +80,7 @@ spec:
             optional: true
         - name: config-volume
           configMap:
-            name: {{ include "nodelocaldns.fullname" . }}
+            name: {{ include "nodelocaldns.name" . }}
             items:
               - key: Corefile
                 path: Corefile.base

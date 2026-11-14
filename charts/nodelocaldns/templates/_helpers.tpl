@@ -1,28 +1,20 @@
 {{- define "nodelocaldns.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+node-local-dns
 {{- end }}
 
-{{- define "nodelocaldns.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- define "nodelocaldns.namespace" -}}
+{{- .Values.namespace | default "kube-system" }}
 {{- end }}
 
 {{- define "nodelocaldns.labels" -}}
-k8s-app: node-local-dns
+k8s-app: {{ include "nodelocaldns.name" . }}
 kubernetes.io/cluster-service: "true"
-app.kubernetes.io/name: {{ include "nodelocaldns.name" . }}
+app.kubernetes.io/name: nodelocaldns
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{- define "nodelocaldns.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "nodelocaldns.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
+{{- include "nodelocaldns.name" . }}
 {{- end }}

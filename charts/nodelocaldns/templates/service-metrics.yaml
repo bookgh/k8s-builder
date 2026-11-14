@@ -1,14 +1,14 @@
-# Headless Service：向 Prometheus 暴露 node-cache 指标。
+# Headless Service，用于向 Prometheus 暴露 metrics。
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "nodelocaldns.fullname" . }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "nodelocaldns.name" . }}
+  namespace: {{ include "nodelocaldns.namespace" . }}
   annotations:
-    prometheus.io/port: {{ .Values.config.metricsPort | quote }}
+    prometheus.io/port: "{{ .Values.config.metricsPort }}"
     prometheus.io/scrape: "true"
   labels:
-    k8s-app: node-local-dns
+    {{- include "nodelocaldns.labels" . | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -16,4 +16,4 @@ spec:
       port: {{ .Values.config.metricsPort }}
       targetPort: {{ .Values.config.metricsPort }}
   selector:
-    k8s-app: node-local-dns
+    k8s-app: {{ include "nodelocaldns.name" . }}
