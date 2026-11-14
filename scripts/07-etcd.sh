@@ -127,8 +127,10 @@ if [[ ! -x "${bin_dir}/etcdctl" ]]; then
         --cert=${ca_dir}/etcd.pem --key=${ca_dir}/etcd-key.pem endpoint health --cluster" >/dev/null 2>&1
   }
 fi
+log_info "etcd 健康检查命令：${bin_dir}/etcdctl --endpoints=${ETCD_ENDPOINTS} --cacert=${ca_dir}/ca.pem --cert=${ca_dir}/etcd.pem --key=${ca_dir}/etcd-key.pem endpoint health --cluster"
 wait_for "etcd 集群健康" 90 5 etcdctl_check
 
+log_info "etcd 状态命令：${bin_dir}/etcdctl --endpoints=${ETCD_ENDPOINTS} --cacert=${ca_dir}/ca.pem --cert=${ca_dir}/etcd.pem --key=${ca_dir}/etcd-key.pem endpoint status --write-out=table"
 ssh_run "${ETCD_IPS[0]}" "${bin_dir}/etcdctl --endpoints=${ETCD_ENDPOINTS} \
   --cacert=${ca_dir}/ca.pem --cert=${ca_dir}/etcd.pem --key=${ca_dir}/etcd-key.pem \
   endpoint status --write-out=table"
