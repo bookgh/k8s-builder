@@ -28,6 +28,7 @@ STAGES=(
   "09-master.sh"
   "10-worker.sh"
   "11-network.sh"
+  "12-nfs.sh"
   "99-verify.sh"
 )
 
