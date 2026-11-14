@@ -75,7 +75,7 @@ gen_cert() {
 }
 EOF
   local host_arg=()
-  [[ -n "${hosts}" ]] && host_arg=(-hostname "${hosts}")
+  if [[ -n "${hosts}" ]]; then host_arg=(-hostname "${hosts}"); fi
   ( cd "${ssl_dir}" && "${CFSSL}" gencert -ca=ca.pem -ca-key=ca-key.pem \
       -config=ca-config.json -profile="${profile}" "${host_arg[@]}" \
       "${base}-csr.json" | "${CFSSLJSON}" -bare "${base}" )
@@ -86,8 +86,8 @@ ETCD_HOSTS="$(IFS=,; echo "${ETCD_IPS[*]}"),127.0.0.1"
 gen_cert "etcd" "etcd" "k8s" "kubernetes" "${ETCD_HOSTS}"
 
 # ---- 4. apiserver（kubernetes）证书 ----
-K8S_HOSTS="127.0.0.1,$(IFS=,; echo "${MASTER_IPS[*]}"),${KUBERNETES_SVC_IP},"
-"kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,"
+K8S_HOSTS="127.0.0.1,$(IFS=,; echo "${MASTER_IPS[*]}"),${KUBERNETES_SVC_IP},"\
+"kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,"\
 "kubernetes.default.svc.cluster.local,kubernetes.default.svc.${CLUSTER_DNS_DOMAIN}"
 gen_cert "kubernetes" "kubernetes" "k8s" "kubernetes" "${K8S_HOSTS}"
 
