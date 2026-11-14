@@ -20,7 +20,6 @@ STAGES=(
   "00-preflight.sh"
   "01-ssh.sh"
   "02-init.sh"
-  "03-download.sh"
   "04-caddy.sh"
   "05-harbor.sh"
   "06-cert.sh"
