@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 02-init.sh —— 系统初始化（Rocky Linux 9，集群节点 + 独立 Harbor 节点）
+# 02-init.sh —— 系统初始化（Rocky Linux 9，集群节点 + 独立 Harbor / NFS 节点）
 # 主机名 / hosts / 防火墙 / SELinux / Swap / 模块 / sysctl / ulimit / journald / PATH / 基础包
 # =============================================================================
 set -euo pipefail
@@ -18,7 +18,7 @@ ensure_dir "${SYS_CFG}"
 # -----------------------------------------------------------------------------
 # 1. 本地生成系统配置模板
 # -----------------------------------------------------------------------------
-# hosts：localhost + 集群节点（+ Harbor 解析）
+# hosts：localhost + 集群节点（+ Harbor / NFS 解析）
 {
   echo '127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4'
   echo '::1         localhost localhost.localdomain localhost6 localhost6.localdomain6'
@@ -28,6 +28,9 @@ ensure_dir "${SYS_CFG}"
   done
   if [[ "${INSTALL_HARBOR}" == "true" ]]; then
     echo "${HARBOR_NODE_IP} harbor ${HARBOR_HOST}"
+  fi
+  if [[ "${ENABLE_NFS}" == "true" ]]; then
+    echo "${NFS_SERVER_IP} ${NFS_HOSTNAME}"
   fi
 } > "${SYS_CFG}/hosts"
 
