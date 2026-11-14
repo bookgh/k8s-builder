@@ -58,6 +58,16 @@ helm_pull_or_fallback() {
   fi
 }
 
+# 定位 CHART_DIR 中实际落盘的 tgz（上游版本号可能带 v 前缀，不硬拼文件名）。
+resolve_chart_tgz() {
+  local chart="$1" found
+  found="$(find "${CHART_DIR}" -maxdepth 1 -type f -name "${chart}-*.tgz" | sort | tail -1)"
+  if [ -z "${found}" ]; then
+    log_error "未在 ${CHART_DIR} 找到 ${chart}-*.tgz"; exit 1
+  fi
+  echo "${found}"
+}
+
 # 从渲染后的清单中提取镜像列表（兼容字符串与 {repository,tag} 对象两种形式）。
 extract_images() {
   local rendered="$1"
@@ -135,7 +145,7 @@ for key in "${CHART_KEYS[@]}"; do
     chart_ref="${local_path}"
   else
     helm_pull_or_fallback "${key}" "${repository}" "${chart}" "${version}"
-    chart_ref="${CHART_DIR}/${chart}-${version}.tgz"
+    chart_ref="$(resolve_chart_tgz "${chart}")"
   fi
 
   # 可选 CRD Chart（如 calico crd.projectcalico.org.v1）。
