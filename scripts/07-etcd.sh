@@ -19,7 +19,9 @@ ensure_dir "${etcd_cfg}"
 for ((i=0; i<${#ETCD_IPS[@]}; i++)); do
   ip="${ETCD_IPS[i]}"; nodename="${ETCD_NAMES[i]}"
   wal_dir_arg=""
-  [[ -n "${ETCD_WAL_DIR}" ]] && wal_dir_arg="  --wal-dir=${ETCD_WAL_DIR} \\"
+  if [[ -n "${ETCD_WAL_DIR}" ]]; then
+    wal_dir_arg="  --wal-dir=${ETCD_WAL_DIR} \\"
+  fi
 
   cat > "${etcd_cfg}/etcd-${nodename}.service" <<EOF
 [Unit]
