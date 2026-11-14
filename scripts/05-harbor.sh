@@ -74,21 +74,25 @@ EOF
 scp_to "${HARBOR_NODE_IP}" "${sys_cfg}/docker.service" "/etc/systemd/system/docker.service"
 systemd_enable "${HARBOR_NODE_IP}" docker
 
-# ---- 3. 解压 Harbor 安装器，在模板 harbor.yml 上替换必填项 ----
+# ---- 3. 解压 Harbor 安装器到 /home/harbor，由模板 harbor.yml.tmpl 生成 harbor.yml ----
 remote_fetch "${HARBOR_NODE_IP}" "k8s-offline/tarball/harbor-offline-installer-v${HARBOR_VER}.tgz" "/root/harbor.tgz"
-ssh_run "${HARBOR_NODE_IP}" "rm -rf /root/harbor && mkdir -p /root/harbor && tar xzf /root/harbor.tgz -C /root/harbor --strip-components=1"
+ssh_run "${HARBOR_NODE_IP}" "rm -rf /home/harbor && mkdir -p /home/harbor && tar xzf /root/harbor.tgz -C /home/harbor --strip-components=1"
+ssh_run "${HARBOR_NODE_IP}" "cp -f /home/harbor/harbor.yml.tmpl /home/harbor/harbor.yml"
 
-# 基于安装包模板替换 hostname / http.port / 管理员口令 / 数据库口令，其余默认段保留，不手写整份 yml
-ssh_run "${HARBOR_NODE_IP}" "sed -i 's/^hostname: .*/hostname: ${HARBOR_HOST}/' /root/harbor/harbor.yml"
-ssh_run "${HARBOR_NODE_IP}" "sed -i '/^http:/,/^[a-z]/ s/^  port: .*/  port: ${HARBOR_HTTP_PORT}/' /root/harbor/harbor.yml"
-ssh_run "${HARBOR_NODE_IP}" "sed -i 's/^harbor_admin_password: .*/harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}/' /root/harbor/harbor.yml"
-ssh_run "${HARBOR_NODE_IP}" "sed -i '/^database:/,/^[a-z]/ s/^  password: .*/  password: ${HARBOR_ADMIN_PASSWORD}/' /root/harbor/harbor.yml"
+# 本机仅 HTTP 部署：注释 https 段（https: / port / certificate / private_key）
+ssh_run "${HARBOR_NODE_IP}" "sed -i '/^https:/,/^  private_key:/ { /^#/! s/^/# /; }' /home/harbor/harbor.yml"
+
+# 基于模板替换 hostname / http.port / 管理员口令 / 数据库口令，其余默认段保留，不手写整份 yml
+ssh_run "${HARBOR_NODE_IP}" "sed -i 's/^hostname: .*/hostname: ${HARBOR_HOST}/' /home/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "sed -i '/^http:/,/^[a-z]/ s/^  port: .*/  port: ${HARBOR_HTTP_PORT}/' /home/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "sed -i 's/^harbor_admin_password: .*/harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}/' /home/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "sed -i '/^database:/,/^[a-z]/ s/^  password: .*/  password: ${HARBOR_ADMIN_PASSWORD}/' /home/harbor/harbor.yml"
 
 # 自检：hostname 与管理员口令已落到模板
-ssh_run "${HARBOR_NODE_IP}" "grep -q '^hostname: ${HARBOR_HOST}$' /root/harbor/harbor.yml && grep -q '^harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}$' /root/harbor/harbor.yml"
+ssh_run "${HARBOR_NODE_IP}" "grep -q '^hostname: ${HARBOR_HOST}$' /home/harbor/harbor.yml && grep -q '^harbor_admin_password: ${HARBOR_ADMIN_PASSWORD}$' /home/harbor/harbor.yml"
 
-# ---- 4. 执行安装 ----
-ssh_run "${HARBOR_NODE_IP}" "cd /root/harbor && ./install.sh"
+# ---- 4. 执行安装（含 Trivy 漏洞扫描）----
+ssh_run "${HARBOR_NODE_IP}" "cd /home/harbor && ./install.sh --with-trivy"
 
 # ---- 5. 全 K8s 节点 hosts 解析确认（02-init 已写入，此处兜底补写）----
 for ip in "${ALL_IPS[@]}"; do
