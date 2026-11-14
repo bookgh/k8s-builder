@@ -20,15 +20,15 @@ fi
 log_info "===== ${STAGE} 安装 Harbor（${HARBOR_HOST}）====="
 require_var HARBOR_NODE_IP; require_var HARBOR_HOST; require_var HARBOR_HTTP_PORT
 
-# Harbor 管理员口令由环境变量注入，不写死
+# Harbor 管理员口令：env.sh 或环境变量注入，不写死
 if [[ -z "${HARBOR_ADMIN_PASSWORD:-}" ]]; then
-  log_error "需提供环境变量 HARBOR_ADMIN_PASSWORD"; exit 1
+  log_error "需在 env.sh 或环境变量提供 HARBOR_ADMIN_PASSWORD"; exit 1
 fi
 
 # ---- 1. Harbor 节点免密（节点表之外，单独处理）----
 if ! ssh "${SSH_OPTS[@]}" "root@${HARBOR_NODE_IP}" "true" 2>/dev/null; then
   if [[ -z "${SSH_PASSWORD:-}" ]]; then
-    log_error "Harbor 节点 ${HARBOR_NODE_IP} 未免密，需环境变量 SSH_PASSWORD"; exit 1
+    log_error "Harbor 节点 ${HARBOR_NODE_IP} 未免密，需在 env.sh 或环境变量提供 SSH_PASSWORD"; exit 1
   fi
   sshpass -p "${SSH_PASSWORD}" ssh-copy-id \
     -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
