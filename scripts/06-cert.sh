@@ -86,9 +86,7 @@ ETCD_HOSTS="$(IFS=,; echo "${ETCD_IPS[*]}"),127.0.0.1"
 gen_cert "etcd" "etcd" "k8s" "kubernetes" "${ETCD_HOSTS}"
 
 # ---- 4. apiserver（kubernetes）证书 ----
-K8S_HOSTS="127.0.0.1,$(IFS=,; echo "${MASTER_IPS[*]}"),${KUBERNETES_SVC_IP},"
-"kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,"
-"kubernetes.default.svc.cluster.local,kubernetes.default.svc.${CLUSTER_DNS_DOMAIN}"
+K8S_HOSTS="127.0.0.1,$(IFS=,; echo "${MASTER_IPS[*]}"),${KUBERNETES_SVC_IP},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.cluster.local,kubernetes.default.svc.${CLUSTER_DNS_DOMAIN}"
 gen_cert "kubernetes" "kubernetes" "k8s" "kubernetes" "${K8S_HOSTS}"
 
 # ---- 5. 其他组件证书 ----
