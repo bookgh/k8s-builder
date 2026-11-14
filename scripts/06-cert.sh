@@ -2,6 +2,7 @@
 # =============================================================================
 # 06-cert.sh —— 生成 CA / 组件 / kubelet 证书与 kubeconfig（部署节点本机）
 # admin kubeconfig 留部署节点本机，并下发到所有集群节点 /root/.kube/config。
+# 幂等：CA / 证书 / kubeconfig 已存在且非空则跳过，重复执行不更换 CA。
 # =============================================================================
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -59,13 +60,21 @@ cat > "${ssl_dir}/ca-csr.json" <<EOF
 }
 EOF
 
-( cd "${ssl_dir}" && "${CFSSL}" gencert -initca ca-csr.json | "${CFSSLJSON}" -bare ca )
-log_ok "CA 根证书生成"
+if [[ -s "${ssl_dir}/ca.pem" && -s "${ssl_dir}/ca-key.pem" ]]; then
+  log_info "CA 根证书已存在，跳过生成"
+else
+  ( cd "${ssl_dir}" && "${CFSSL}" gencert -initca ca-csr.json | "${CFSSLJSON}" -bare ca )
+  log_ok "CA 根证书生成"
+fi
 
 # ---- 证书生成封装 ----
 # gen_cert <basename> <CN> <O> <profile> [hosts]
 gen_cert() {
   local base="$1" cn="$2" org="$3" profile="$4" hosts="${5:-}"
+  if [[ -s "${ssl_dir}/${base}.pem" && -s "${ssl_dir}/${base}-key.pem" ]]; then
+    log_info "证书 ${base} 已存在，跳过生成"
+    return 0
+  fi
   cat > "${ssl_dir}/${base}-csr.json" <<EOF
 {
   "CN": "${cn}",
@@ -100,6 +109,10 @@ gen_cert "calico" "calico" "k8s" "kubernetes"
 # ---- 6. kubelet 证书（逐节点）----
 for ((i=0; i<${#ALL_IPS[@]}; i++)); do
   nodename="${ALL_NAMES[i]}"; nodeip="${ALL_IPS[i]}"
+  if [[ -s "${ssl_dir}/${nodename}-kubelet.pem" && -s "${ssl_dir}/${nodename}-kubelet-key.pem" ]]; then
+    log_info "证书 ${nodename}-kubelet 已存在，跳过生成"
+    continue
+  fi
   cat > "${ssl_dir}/${nodename}-kubelet-csr.json" <<EOF
 {
   "CN": "system:node:${nodename}",
@@ -119,6 +132,10 @@ log_ok "组件与 kubelet 证书生成"
 gen_kubeconfig() {
   local name="$1" cert="$2" key="$3" user="$4"
   local kc="${kc_dir}/${name}.kubeconfig"
+  if [[ -s "${kc}" ]]; then
+    log_info "kubeconfig ${name} 已存在，跳过生成"
+    return 0
+  fi
   "${KUBECTL}" config set-cluster kubernetes \
     --certificate-authority="${ssl_dir}/ca.pem" --embed-certs=true \
     --server="${KUBE_APISERVER}" --kubeconfig="${kc}"
@@ -143,8 +160,12 @@ log_ok "kubeconfig 生成"
 
 # ---- 8. admin kubeconfig：部署节点本机 + 下发所有节点 ----
 mkdir -p ~/.kube
-cp -f "${kc_dir}/kubectl.kubeconfig" ~/.kube/config
-chmod 0400 ~/.kube/config
+if [[ -s ~/.kube/config ]]; then
+  log_info "本机 admin kubeconfig 已存在，跳过复制"
+else
+  cp -f "${kc_dir}/kubectl.kubeconfig" ~/.kube/config
+  chmod 0400 ~/.kube/config
+fi
 
 for ip in "${ALL_IPS[@]}"; do
   log_info "分发 admin kubeconfig -> ${ip}"
