@@ -10,7 +10,7 @@ source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/inventory.sh"
 
 STAGE="07-etcd"
-log_info "===== ${STAGE} 部署 etcd ==="
+log_info "===== ${STAGE} 部署 etcd ====="
 
 etcd_cfg="${cluster_dir}/etcd-cfg"
 ensure_dir "${etcd_cfg}"
