@@ -4,14 +4,13 @@
 #
 # 校验方式（nginx 官方支持的完整性校验）：
 #   - 下载源码包及其 PGP 签名 (.tar.gz.asc)；
-#   - 导入 nginx 官方开发者公钥（Roman Arutyunyan, arutyunyan@f5.com）；
+#   - 导入 nginx 官方全部开发者公钥（不同版本可能由不同开发者签名）；
 #   - gpg --verify 校验签名通过后再解压编译。
 #   - 不在本文件中固定 SHA256 摘要；版本号由构建参数 NGINX_VERSION 传入。
 # -----------------------------------------------------------------------------
 FROM rockylinux:9 AS nginx-builder
 
 ARG NGINX_VERSION=1.30.6
-ARG NGINX_KEY_URL=https://nginx.org/keys/arut.key
 
 # Rocky Linux 9 基础镜像预装 curl-minimal，避免与 curl 软件包冲突。
 RUN dnf -y install \
@@ -30,9 +29,11 @@ RUN set -eux; \
     curl --fail --location --retry 4 --retry-all-errors \
       "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz.asc" \
       --output nginx.tar.gz.asc; \
-    curl --fail --location --retry 4 --retry-all-errors \
-      "${NGINX_KEY_URL}" --output nginx_signing.key; \
-    gpg --batch --import nginx_signing.key; \
+    for key in arut pluknet sb thresh; do \
+      curl --fail --location --retry 4 --retry-all-errors \
+        "https://nginx.org/keys/${key}.key" --output "${key}.key"; \
+      gpg --batch --import "${key}.key"; \
+    done; \
     gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz; \
     tar -xzf nginx.tar.gz; \
     cd "nginx-${NGINX_VERSION}"; \
