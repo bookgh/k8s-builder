@@ -69,8 +69,8 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 
-# 分发 kube-lb 到 Worker 节点（Master 本机直连 apiserver，不经本地 lb）
-for ip in "${WORKER_IPS[@]}"; do
+# 分发 kube-lb 到所有节点（本机 127.0.0.1:6443 经本地 lb 转发到 master upstream）
+for ip in "${ALL_IPS[@]}"; do
   log_info "部署 kube-lb -> ${ip}"
   ssh_run "${ip}" "mkdir -p /etc/kube-lb/{sbin,conf,logs}"
   scp_to "${ip}" "${offline_dir}/bin/nginx-${NGINX_VER}-linux-${ARCH}" "/etc/kube-lb/sbin/kube-lb"
