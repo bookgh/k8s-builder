@@ -8,6 +8,7 @@
 k8s-builder/
 ├── versions.env                  # 非 Chart 组件版本（二进制 / 压缩包 / 镜像）
 ├── charts.yaml                   # Chart 仓库、名称与版本（Calico / CoreDNS / NodeLocalDNS）
+├── download-release.sh            # 从 Release 下载全部离线资源，断点续传并校验 SHA256
 ├── nginx/
 │   └── Dockerfile                # 多阶段编译 stream 专用 nginx 二进制
 ├── charts/
@@ -39,6 +40,18 @@ k8s-builder/
 | `dist/images/<chart>/` | 各 Chart 渲染出的镜像，docker save 后 gzip 为 `.tar.gz` |
 | `dist/images/pause/` | pause 镜像离线归档 |
 | `dist/SHA256SUMS` | 全部发布物校验清单 |
+
+## 离线资源下载
+
+获取已发布 Release 的全部离线资源（按清单内目录结构落地）：
+
+```bash
+./download-release.sh
+# 可选覆盖：TAG=v1.37.2-r1 DEST=./k8s-offline GITHUB_PROXY=https://gh-proxy.com ./download-release.sh
+```
+
+- 默认从 `bookgh/k8s-builder` 的 `v1.37.2-r1` Release 下载；`GITHUB_PROXY` 默认 `https://gh-proxy.com` 加速，置空可关闭加速直连。
+- 下载使用 `curl -C -` 断点续传；全部下载完成后自动执行 `sha256sum -c SHA256SUMS` 校验，任一文件哈希不符即报错退出。
 
 ## 触发方式
 

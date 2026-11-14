@@ -52,7 +52,7 @@ download() {
     log_info "  加速: ${proxied}"
   fi
   curl --fail --location --retry 4 --retry-all-errors --silent --show-error \
-    --output "${out}" "${proxied}"
+    -C - --output "${out}" "${proxied}"
   require_file "${out}"
 }
 
