@@ -1,0 +1,27 @@
+# =============================================================================
+# Chart 版本集中配置
+# 说明：
+#   - 本文件管理所有 Helm Chart 的仓库、名称与版本；versions.env 不重复维护。
+#   - CI（ci-scripts/fetch-charts.sh）解析本文件：
+#       * repository 为 http(s) Helm 仓库时：helm repo add + helm pull；
+#       * 版本尚未进入仓库 index 时：回退对应 GitHub Release 直链下载；
+#       * repository 为 local 时：对仓库内 charts/<chart>/ 执行 helm package。
+#   - 每个 Chart 渲染出的镜像会被单独打包到 dist/images/<chart>/ 目录。
+# =============================================================================
+
+calico:
+  repository: https://docs.tigera.io/calico/charts
+  chart: tigera-operator
+  version: "3.33.0"
+  crd_chart: crd.projectcalico.org.v1
+  crd_version: "3.33.0"
+
+coredns:
+  repository: https://coredns.github.io/helm
+  chart: coredns
+  version: "1.50.7"
+
+nodelocaldns:
+  repository: local
+  chart: nodelocaldns
+  version: "1.37.2"

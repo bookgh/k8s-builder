@@ -1,0 +1,12 @@
+apiVersion: v2
+name: nodelocaldns
+description: NodeLocal DNSCache DaemonSet for cluster DNS caching (production skeleton for Kubernetes 1.37)
+type: application
+version: "1.37.2"
+appVersion: "1.37.2"
+keywords:
+  - dns
+  - nodelocaldns
+  - coredns
+maintainers:
+  - name: k8s-builder
