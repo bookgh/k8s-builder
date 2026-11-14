@@ -52,11 +52,45 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 
+# 超时自停：启动 ${CADDY_TIMEOUT_SEC} 秒后自动 stop caddy（临时物料服务兜底）
+cat > "${cluster_dir}/caddy/caddy-file-server-timeout.service" <<EOF
+[Unit]
+Description=Stop caddy file-server after grace period
+After=caddy-file-server.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl stop caddy-file-server
+EOF
+
+cat > "${cluster_dir}/caddy/caddy-file-server-timeout.timer" <<EOF
+[Unit]
+Description=Grace period timer for caddy file-server
+
+[Timer]
+OnActiveSec=${CADDY_TIMEOUT_SEC}
+Unit=caddy-file-server-timeout.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 cp "${cluster_dir}/caddy/caddy-file-server.service" /etc/systemd/system/caddy-file-server.service
+cp "${cluster_dir}/caddy/caddy-file-server-timeout.service" /etc/systemd/system/caddy-file-server-timeout.service
+cp "${cluster_dir}/caddy/caddy-file-server-timeout.timer" /etc/systemd/system/caddy-file-server-timeout.timer
 
 systemctl daemon-reload
 systemctl enable caddy-file-server
 systemctl restart caddy-file-server
+# 启用超时自停定时器（OnActiveSec 从定时器激活起算）
+systemctl enable --now caddy-file-server-timeout.timer
+
+# ---- 防火墙放行 caddy 端口（firewalld 运行时才操作；未启用则跳过）----
+if systemctl is-active --quiet firewalld; then
+  firewall-cmd --permanent --add-port=${CADDY_PORT}/tcp
+  firewall-cmd --reload
+  log_ok "防火墙已放行 ${CADDY_PORT}/tcp"
+fi
 
 # ---- 4. 自检 ----
 wait_for "caddy 本机 HTTP 可达" 30 2 \
