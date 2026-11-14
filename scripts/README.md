@@ -8,12 +8,12 @@
 - 部署节点与所有节点网络互通；防火墙/SELinux 由 `02-init` 关闭禁用。
 - 离线物料在部署节点源码目录手动执行根目录 `download-release.sh` 拉取并校验 SHA256（该脚本不在阶段编排内，随 Release 附件分发）。
 
-## 环境变量（不写入脚本）
+## 认证变量（`env.sh` 填写或环境变量注入）
 
 | 变量 | 说明 |
 |---|---|
-| `SSH_PASSWORD` | 节点 root 密码，用于 `01-ssh` 首次推送公钥；已免密后可不提供 |
-| `HARBOR_ADMIN_PASSWORD` | `INSTALL_HARBOR=true` 时必填，Harbor 管理员口令 |
+| `SSH_PASSWORD` | 节点 root 密码，用于 `01-ssh` 首次推送公钥；可在 `env.sh` 填写或环境变量注入，已免密后可不提供 |
+| `HARBOR_ADMIN_PASSWORD` | `INSTALL_HARBOR=true` 时必填，Harbor 管理员口令；可在 `env.sh` 填写或环境变量注入 |
 
 ## 快速开始
 
