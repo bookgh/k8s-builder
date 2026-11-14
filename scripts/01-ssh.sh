@@ -22,8 +22,8 @@ fi
 chmod 600 ~/.ssh/id_rsa
 pub_key="$(cat ~/.ssh/id_rsa.pub)"
 
-# ---- 逐节点分发公钥并验证 ----
-for ip in "${ALL_IPS[@]}"; do
+# ---- 逐节点分发公钥并验证（含独立 Harbor 节点）----
+for ip in "${INIT_IPS[@]}"; do
   # 已可免密则跳过
   if ssh "${SSH_OPTS[@]}" "root@${ip}" "true" 2>/dev/null; then
     log_ok "${ip} 已免密，跳过"
