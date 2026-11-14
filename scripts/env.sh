@@ -44,7 +44,7 @@ MASTER_COUNT=3
 # 部署节点 IP：可为 NODES 表内或表外任意可达机器（不要求是 Master）；留空则取首项 Master IP
 DEPLOY_IP="192.168.10.60"
 # SSH 登录口令：可在此填写，或由环境变量 SSH_PASSWORD 注入；留空则要求节点已免密
-SSH_PASSWORD=""
+SSH_PASSWORD="redhat"
 
 # -----------------------------------------------------------------------------
 # 2. 集群网络
@@ -87,20 +87,20 @@ REGISTRY_MIRRORS=(
 # -----------------------------------------------------------------------------
 # 4. Harbor（可选，INSTALL_HARBOR=false 时整段跳过）
 # -----------------------------------------------------------------------------
-INSTALL_HARBOR="false"
+INSTALL_HARBOR="true"
 HARBOR_NODE_IP="192.168.10.70"
 HARBOR_HOST="harbor.192.168.10.70.nip.io"
 HARBOR_HTTP_PORT="80"
 # Harbor 项目名（推送镜像时使用）
 HARBOR_PROJECT="k8s"
 # Harbor 管理员口令：可在此填写，或由环境变量 HARBOR_ADMIN_PASSWORD 注入
-HARBOR_ADMIN_PASSWORD=""
+HARBOR_ADMIN_PASSWORD="HARBOR12345"
 
 # -----------------------------------------------------------------------------
 # 4.1 NFS 存储（可选，ENABLE_NFS=false 时整段跳过）
 #     本轮仅配置独立 NFS 服务端机器层导出；K8s 内 PV / StorageClass 后续阶段接入。
 # -----------------------------------------------------------------------------
-ENABLE_NFS="false"
+ENABLE_NFS="true"
 # NFS 服务端节点 IP（独立表外节点；若已在 NODES 表内则不重复纳入免密/初始化）
 NFS_SERVER_IP="192.168.10.71"
 # NFS 节点主机名（不在 NODES 表时使用）
