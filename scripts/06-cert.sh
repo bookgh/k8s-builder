@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # 06-cert.sh —— 生成 CA / 组件 / kubelet 证书与 kubeconfig（部署节点本机）
-# 安全口径：admin kubeconfig 仅留部署节点，不下发 Worker。
+# admin kubeconfig 留部署节点本机，并下发到所有集群节点 /root/.kube/config。
 # =============================================================================
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -86,8 +86,8 @@ ETCD_HOSTS="$(IFS=,; echo "${ETCD_IPS[*]}"),127.0.0.1"
 gen_cert "etcd" "etcd" "k8s" "kubernetes" "${ETCD_HOSTS}"
 
 # ---- 4. apiserver（kubernetes）证书 ----
-K8S_HOSTS="127.0.0.1,$(IFS=,; echo "${MASTER_IPS[*]}"),${KUBERNETES_SVC_IP},"\
-"kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,"\
+K8S_HOSTS="127.0.0.1,$(IFS=,; echo "${MASTER_IPS[*]}"),${KUBERNETES_SVC_IP},"
+"kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,"
 "kubernetes.default.svc.cluster.local,kubernetes.default.svc.${CLUSTER_DNS_DOMAIN}"
 gen_cert "kubernetes" "kubernetes" "k8s" "kubernetes" "${K8S_HOSTS}"
 
@@ -143,10 +143,17 @@ for ((i=0; i<${#ALL_IPS[@]}; i++)); do
 done
 log_ok "kubeconfig 生成"
 
-# ---- 8. admin kubeconfig 仅部署节点本机 ----
+# ---- 8. admin kubeconfig：部署节点本机 + 下发所有节点 ----
 mkdir -p ~/.kube
 cp -f "${kc_dir}/kubectl.kubeconfig" ~/.kube/config
 chmod 0400 ~/.kube/config
+
+for ip in "${ALL_IPS[@]}"; do
+  log_info "分发 admin kubeconfig -> ${ip}"
+  ssh_run "${ip}" "mkdir -p /root/.kube"
+  scp_to "${ip}" "${kc_dir}/kubectl.kubeconfig" "/root/.kube/config"
+  ssh_run "${ip}" "chmod 0400 /root/.kube/config"
+done
 
 # ---- 9. 副本同步到 config/ 供 caddy 分发 ----
 mkdir -p "${cluster_dir}/config/ssl" "${cluster_dir}/config/kube-cfg"
