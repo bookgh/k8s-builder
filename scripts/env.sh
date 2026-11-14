@@ -131,11 +131,8 @@ ARCH="amd64"
 SANDBOX_IMAGE="registry.k8s.io/pause:${PAUSE_VERSION}"
 
 # -----------------------------------------------------------------------------
-# 8. 代理 / Release / caddy
+# 8. caddy 文件服务
 # -----------------------------------------------------------------------------
-REPO="bookgh/k8s-builder"
-TAG="v1.37.2-r1"
-GITHUB_PROXY="https://gh-proxy.com"
 CADDY_PORT="2026"
 REPO_BASE="http://${DEPLOY_IP}:${CADDY_PORT}"
 
