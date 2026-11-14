@@ -9,7 +9,9 @@
 NODE_IPS=(); NODE_NAMES=()
 for entry in "${NODES[@]}"; do
   read -r _ip _name <<< "${entry}"
-  [[ -z "${_ip}" || -z "${_name}" ]] && { log_error "NODES 条目格式错误：${entry}"; exit 1; }
+  if [[ -z "${_ip}" || -z "${_name}" ]]; then
+    log_error "NODES 条目格式错误：${entry}"; exit 1
+  fi
   NODE_IPS+=("${_ip}")
   NODE_NAMES+=("${_name}")
 done
@@ -23,8 +25,12 @@ done
 # IP / 主机名去重校验
 for ((i=0; i<${#NODE_IPS[@]}; i++)); do
   for ((j=i+1; j<${#NODE_IPS[@]}; j++)); do
-    [[ "${NODE_IPS[i]}" == "${NODE_IPS[j]}" ]] && { log_error "IP 重复：${NODE_IPS[i]}"; exit 1; }
-    [[ "${NODE_NAMES[i]}" == "${NODE_NAMES[j]}" ]] && { log_error "主机名重复：${NODE_NAMES[i]}"; exit 1; }
+    if [[ "${NODE_IPS[i]}" == "${NODE_IPS[j]}" ]]; then
+      log_error "IP 重复：${NODE_IPS[i]}"; exit 1
+    fi
+    if [[ "${NODE_NAMES[i]}" == "${NODE_NAMES[j]}" ]]; then
+      log_error "主机名重复：${NODE_NAMES[i]}"; exit 1
+    fi
   done
 done
 
@@ -43,20 +49,20 @@ ALL_IPS=("${MASTER_IPS[@]}" "${WORKER_IPS[@]}")
 ALL_NAMES=("${MASTER_NAMES[@]}" "${WORKER_NAMES[@]}")
 
 # ---- 部署节点：未配置则取首个 Master ----
-[[ -z "${DEPLOY_IP:-}" ]] && DEPLOY_IP="${MASTER_IPS[0]}"
+if [[ -z "${DEPLOY_IP:-}" ]]; then DEPLOY_IP="${MASTER_IPS[0]}"; fi
 is_master "${DEPLOY_IP}" || { log_error "DEPLOY_IP=${DEPLOY_IP} 不在 Master 列表"; exit 1; }
 
 # ---- 派生：etcd 成员与 endpoints ----
 ETCD_INITIAL_CLUSTER="$(
   for ((i=0; i<${#ETCD_IPS[@]}; i++)); do
     echo -n "etcd-${ETCD_IPS[i]}=https://${ETCD_IPS[i]}:2380"
-    (( i < ${#ETCD_IPS[@]}-1 )) && echo -n ","
+    if (( i < ${#ETCD_IPS[@]}-1 )); then echo -n ","; fi
   done
 )"
 ETCD_ENDPOINTS="$(
   for ((i=0; i<${#ETCD_IPS[@]}; i++)); do
     echo -n "https://${ETCD_IPS[i]}:2379"
-    (( i < ${#ETCD_IPS[@]}-1 )) && echo -n ","
+    if (( i < ${#ETCD_IPS[@]}-1 )); then echo -n ","; fi
   done
 )"
 
