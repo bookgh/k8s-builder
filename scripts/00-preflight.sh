@@ -58,7 +58,7 @@ for tool in yq helm ssh-keygen; do
 done
 
 # ---- 5. 关键变量校验 ----
-for v in REPO TAG GITHUB_PROXY CADDY_PORT SERVICE_CIDR CLUSTER_CIDR \
+for v in CADDY_PORT SERVICE_CIDR CLUSTER_CIDR \
          CLUSTER_DNS_SVC_IP LOCAL_DNS_CACHE RUNTIME K8S_VER; do
   require_var "${v}"
 done
@@ -68,14 +68,5 @@ done
 
 # ---- 6. 规划摘要 ----
 inventory_summary
-
-# ---- 7. GitHub 代理可达性探测（失败仅告警，不阻断离线流程）----
-if [[ -n "${GITHUB_PROXY}" ]]; then
-  if curl -fsS -m 8 -o /dev/null "${GITHUB_PROXY}/" 2>/dev/null; then
-    log_ok "GitHub 代理可达：${GITHUB_PROXY}"
-  else
-    log_warn "GitHub 代理不可达：${GITHUB_PROXY}（若 Release 已离线下载可忽略）"
-  fi
-fi
 
 log_ok "${STAGE} 自检通过"
