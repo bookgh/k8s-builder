@@ -38,7 +38,7 @@ chmod +x *.sh lib/*.sh
 | 00 | `00-preflight.sh` | OS/架构/资源/工具/变量与节点表自检 |
 | 01 | `01-ssh.sh` | 密钥生成、公钥分发、免密验证 |
 | 02 | `02-init.sh` | 主机名/hosts/防火墙/SELinux/swap/模块/sysctl/ulimit/journald/基础包 |
-| 04 | `04-caddy.sh` | caddy file-server `:2026`，对外分发物料与配置副本 |
+| 04 | `04-caddy.sh` | caddy file-server `:2026`，对外分发物料与配置副本；放行 `2026/tcp`，启动 3 小时后兜底自停 |
 | 05 | `05-harbor.sh` | 可选 Harbor 安装、hosts 解析、节点信任 |
 | 06 | `06-cert.sh` | cfssl 证书与 kubeconfig 生成（admin 仅留部署节点） |
 | 07 | `07-etcd.sh` | 堆叠 etcd 三节点部署与健康检查 |
