@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # 01-ssh.sh —— 部署节点到全部节点的 SSH 免密
-# 密码由环境变量 SSH_PASSWORD 注入，不落地、不写日志。
+# 密码取自 env.sh 的 SSH_PASSWORD 或环境变量注入；不写日志。
 # =============================================================================
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +39,7 @@ for ip in "${ALL_IPS[@]}"; do
   fi
 
   if [[ -z "${SSH_PASSWORD:-}" ]]; then
-    log_error "节点 ${ip} 尚未免密，需提供环境变量 SSH_PASSWORD"; exit 1
+    log_error "节点 ${ip} 尚未免密，需在 env.sh 或环境变量提供 SSH_PASSWORD"; exit 1
   fi
 
   log_info "${ip} 推送公钥"
