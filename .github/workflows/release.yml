@@ -1,0 +1,76 @@
+name: release
+
+on:
+  release:
+    types:
+      - created
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 手动触发时创建 Release 所用的 tag
+        required: false
+        default: "manual"
+
+permissions:
+  contents: write
+
+env:
+  ARCH: amd64
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load versions.env into environment
+        run: |
+          set -a
+          # shellcheck source=versions.env
+          . versions.env
+          set +a
+          env | grep -E '^[A-Z][A-Z0-9_]*=' >> "${GITHUB_ENV}"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "${{ env.HELM_VERSION }}"
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Prepare scripts
+        run: chmod +x ci-scripts/*.sh
+
+      - name: Download offline assets
+        run: ci-scripts/download-assets.sh
+
+      - name: Fetch and package charts + images
+        run: ci-scripts/fetch-charts.sh
+
+      - name: Export pause image
+        run: ci-scripts/export-pause-image.sh
+
+      - name: Build and extract nginx binary
+        run: ci-scripts/build-nginx.sh
+
+      - name: Generate SHA256SUMS
+        working-directory: dist
+        run: |
+          find . -type f ! -name SHA256SUMS -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name || inputs.tag }}
+          files: |
+            dist/**
+          fail_on_unmatched_files: true
