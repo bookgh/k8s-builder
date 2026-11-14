@@ -10,7 +10,7 @@ source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/inventory.sh"
 
 STAGE="07-etcd"
-log_info "===== ${STAGE} 部署 etcd ====="
+log_info "===== ${STAGE} 部署 etcd ==="
 
 etcd_cfg="${cluster_dir}/etcd-cfg"
 ensure_dir "${etcd_cfg}"
@@ -65,10 +65,10 @@ WantedBy=multi-user.target
 EOF
 done
 
-# ---- 2. 逐节点：证书 / 二进制 / 配置 / 启动 ----
+# ---- 2. 逐节点：下发证书 / 二进制 / 配置并 enable（暂不启动）----
 for ((i=0; i<${#ETCD_IPS[@]}; i++)); do
   ip="${ETCD_IPS[i]}"; nodename="${ETCD_NAMES[i]}"
-  log_info "部署 etcd 节点 ${nodename}(${ip})"
+  log_info "下发 etcd 节点 ${nodename}(${ip})"
 
   ssh_run "${ip}" "mkdir -p ${bin_dir} ${ca_dir} ${ETCD_DATA_DIR}"
 
@@ -92,10 +92,28 @@ for ((i=0; i<${#ETCD_IPS[@]}; i++)); do
   ssh_run "${ip}" "if [ -d '${ETCD_DATA_DIR}/member' ]; then \
       sed -i 's/initial-cluster-state=new/initial-cluster-state=existing/' /etc/systemd/system/etcd.service; fi"
 
-  systemd_enable "${ip}" etcd
+  # 仅 enable + daemon-reload，不在此节点单独启动（集群需全部成员就绪后统一拉起）
+  ssh_run "${ip}" "systemctl daemon-reload && systemctl enable etcd"
 done
 
-# ---- 3. 健康检查 ----
+# ---- 3. 全部成员下发完成后，统一并发后台启动 etcd ----
+log_info "统一启动 etcd 集群（${#ETCD_IPS[@]} 个成员）"
+pids=()
+for ip in "${ETCD_IPS[@]}"; do
+  # --no-block：异步排队启动，systemd 后台并行拉起；健康检查在下一节轮询兜底
+  ssh "${SSH_OPTS[@]}" "root@${ip}" "systemctl start --no-block etcd" &
+  pids+=("$!")
+done
+start_rc=0
+for p in "${pids[@]}"; do
+  wait "${p}" || start_rc=1
+done
+if [[ ${start_rc} -ne 0 ]]; then
+  log_error "etcd 统一启动失败"
+  exit 1
+fi
+
+# ---- 4. 健康检查 ----
 etcdctl_check() {
   "${bin_dir}/etcdctl" --endpoints="${ETCD_ENDPOINTS}" \
     --cacert="${ca_dir}/ca.pem" --cert="${ca_dir}/etcd.pem" --key="${ca_dir}/etcd-key.pem" \
