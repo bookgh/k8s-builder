@@ -46,6 +46,7 @@ chmod +x *.sh lib/*.sh
 | 09 | `09-master.sh` | kube-lb + apiserver / controller-manager / scheduler |
 | 10 | `10-worker.sh` | kubelet / kube-proxy / CNI 分发启动、节点注册 |
 | 11 | `11-network.sh` | helm 离线部署 Calico / CoreDNS / NodeLocal DNSCache |
+| 12 | `12-nfs.sh` | 可选独立 NFS 服务端：导出目录、`/etc/exports`、nfs-server 启用 |
 | 99 | `99-verify.sh` | 全集群终检 |
 
 ## 目录口径（相对脚本目录推导）
@@ -66,6 +67,9 @@ k8s-builder/
 
 - `RUNTIME=containerd|docker`：全局二选一，不混部。
 - `INSTALL_HARBOR=false|true`：是否安装本地 Harbor。
+- `ENABLE_NFS=false|true`：是否配置独立 NFS 服务端（机器层导出；K8s 内 PV / StorageClass 后续接入）。开启后 NFS 节点自动纳入 `01-ssh` 免密与 `02-init` 初始化。
+  - `NFS_SERVER_IP`：NFS 服务端节点 IP（独立表外节点）；`NFS_HOSTNAME`：主机名；`NFS_EXPORT_DIR`：导出目录。
+  - `NFS_ALLOW_CIDR`：导出授权网段，留空自动取首个 Master IP 所在 `/24`。
 - `MASTER_COUNT=3`：前 N 个节点为 Master+Etcd，其余 Worker。
 - `PROXY_MODE=ipvs`；`CALICO_NETWORKING_BACKEND=bird|vxlan`。
 
