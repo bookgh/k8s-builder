@@ -6,7 +6,7 @@
 
 - 操作系统：Rocky Linux 9（x86_64），节点 IP/主机名初始可达。
 - 部署节点与所有节点网络互通；防火墙/SELinux 由 `02-init` 关闭禁用。
-- 离线物料由 `03-download` 从 `bookgh/k8s-builder` Release（`v1.37.2-r1`）拉取并校验 SHA256。
+- 离线物料在部署节点源码目录手动执行根目录 `download-release.sh` 拉取并校验 SHA256（该脚本不在阶段编排内，随 Release 附件分发）。
 
 ## 环境变量（不写入脚本）
 
@@ -38,7 +38,6 @@ chmod +x *.sh lib/*.sh
 | 00 | `00-preflight.sh` | OS/架构/资源/工具/变量与节点表自检 |
 | 01 | `01-ssh.sh` | 密钥生成、公钥分发、免密验证 |
 | 02 | `02-init.sh` | 主机名/hosts/防火墙/SELinux/swap/模块/sysctl/ulimit/journald/基础包 |
-| 03 | `03-download.sh` | 拉取 Release 离线物料，SHA256 校验与关键物料核对 |
 | 04 | `04-caddy.sh` | caddy file-server `:2026`，对外分发物料与配置副本 |
 | 05 | `05-harbor.sh` | 可选 Harbor 安装、hosts 解析、节点信任 |
 | 06 | `06-cert.sh` | cfssl 证书与 kubeconfig 生成（admin 仅留部署节点） |
@@ -59,7 +58,7 @@ k8s-builder/
 │   ├── lib/common.sh        # 日志/校验/远程执行/HTTP/systemd/等待
 │   ├── lib/inventory.sh     # 节点表解析与角色/网络派生
 │   └── NN-*.sh              # 各阶段脚本
-├── k8s-offline/             # 离线物料（03 落地）：bin/charts/images/tarball
+├── k8s-offline/             # 离线物料（download-release.sh 落地）：bin/charts/images/tarball
 └── deploy/                  # 配置与产物留痕：ssl/kube-cfg/sys-cfg/.../config
 ```
 
