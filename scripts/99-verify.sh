@@ -21,7 +21,9 @@ not_ready="$("${KUBECTL}" get nodes --no-headers | grep -c NotReady || true)"
 
 # ---- 2. 控制面组件健康 ----
 echo "----- apiserver /healthz -----"
-"${KUBECTL}" get --raw /healthz | grep -q ok && log_ok "apiserver healthz=ok"
+if "${KUBECTL}" get --raw /healthz | grep -q ok; then
+  log_ok "apiserver healthz=ok"
+fi
 
 # ---- 3. 系统服务状态抽查（首个 Master）----
 echo "----- Master 系统服务 -----"
@@ -46,7 +48,7 @@ fi
 # ---- 4. kube-system Pod ----
 echo "----- kube-system Pod -----"
 "${KUBECTL}" -n kube-system get pods -o wide
-pending="$("${KUBECTL}" -n kube-system get pods --no-headers | grep -Ev 'Running|Completed' | wc -l)"
+pending="$("${KUBECTL}" -n kube-system get pods --no-headers | grep -Ev 'Running|Completed' | wc -l || true)"
 (( pending == 0 )) || log_warn "kube-system 有 ${pending} 个 Pod 非 Running/Completed"
 
 # ---- 5. DNS Service ----
