@@ -2,32 +2,33 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: {{ include "nodelocaldns.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "nodelocaldns.labels" . | nindent 4 }}
 spec:
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 10%
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "nodelocaldns.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      k8s-app: node-local-dns
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "nodelocaldns.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        k8s-app: node-local-dns
       annotations:
         prometheus.io/port: {{ .Values.config.metricsPort | quote }}
         prometheus.io/scrape: "true"
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: {{ .Values.priorityClassName }}
       serviceAccountName: {{ include "nodelocaldns.serviceAccountName" . }}
-      {{- with .Values.priorityClassName }}
-      priorityClassName: {{ . | quote }}
-      {{- end }}
-      nodeSelector:
-        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      hostNetwork: true
+      # 上游默认 Default：不使用集群 DNS，避免与本地缓存循环。
+      dnsPolicy: Default
       tolerations:
         {{- toYaml .Values.tolerations | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
       containers:
         - name: node-cache
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -36,9 +37,15 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           args:
             - "-localip"
-            - {{ .Values.config.listenIP }}
+            - "{{ .Values.config.localDNS }},{{ .Values.config.dnsServer }}"
             - "-conf"
-            - /etc/coredns/Corefile
+            - /etc/Corefile
+            - "-upstreamsvc"
+            - kube-dns-upstream
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
           ports:
             - name: dns
               containerPort: 53
@@ -49,26 +56,33 @@ spec:
             - name: metrics
               containerPort: {{ .Values.config.metricsPort }}
               protocol: TCP
-          volumeMounts:
-            - name: config
-              mountPath: /etc/coredns
-            {{- with .Values.extraVolumeMounts }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
           livenessProbe:
-            tcpSocket:
-              port: 53
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            tcpSocket:
-              port: 53
-            initialDelaySeconds: 10
-            periodSeconds: 5
+            httpGet:
+              host: {{ .Values.config.localDNS }}
+              path: /health
+              port: {{ .Values.config.healthPort }}
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+          volumeMounts:
+            - mountPath: /run/xtables.lock
+              name: xtables-lock
+              readOnly: false
+            - name: config-volume
+              mountPath: /etc/coredns
+            - name: kube-dns-config
+              mountPath: /etc/kube-dns
       volumes:
-        - name: config
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate
+        - name: kube-dns-config
+          configMap:
+            name: kube-dns
+            optional: true
+        - name: config-volume
           configMap:
             name: {{ include "nodelocaldns.fullname" . }}
-        {{- with .Values.extraVolumes }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+            items:
+              - key: Corefile
+                path: Corefile.base

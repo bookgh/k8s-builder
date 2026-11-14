@@ -1,47 +1,49 @@
 # =============================================================================
 # nodelocaldns values
-# 适用于 Kubernetes 1.37 集群的 NodeLocal DNSCache 骨架配置。
+# 对齐上游 kubernetes/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml。
+# 镜像版本以上游 yaml 为准；占位符 __PILLAR__*__ 映射到下列配置项。
 # =============================================================================
 
+# 镜像（tag 以上游 nodelocaldns.yaml 为准）
 image:
-  # 多架构 manifest 列表；如节点为非 amd64，请按架构调整为对应后缀镜像。
   repository: registry.k8s.io/dns/k8s-dns-node-cache
-  tag: "1.37.2"
+  tag: "1.27.1"
   pullPolicy: IfNotPresent
 
+# 上游 PILLAR 占位符对应配置
 config:
-  # 节点上监听的本地缓存 IP（DaemonSet hostNetwork，勿与节点 IP 冲突）。
-  listenIP: 169.254.20.10
-  clusterDomain: cluster.local
-  # 集群外部查询转发到节点本机 resolv.conf；集群内域名转发到集群 DNS Service。
-  upstreamResolvConf: /etc/resolv.conf
-  upstreamClusterDNS: 10.96.0.10
-  cacheSuccess: 9984
-  cacheDenial: 9984
+  dnsDomain: cluster.local        # __PILLAR__DNS__DOMAIN__
+  localDNS: 169.254.20.10          # __PILLAR__LOCAL__DNS__
+  dnsServer: 10.96.0.10            # __PILLAR__DNS__SERVER__
+  clusterDNS: 10.96.0.10           # __PILLAR__CLUSTER__DNS__
+  # __PILLAR__UPSTREAM__SERVERS__：集群外域名转发的上游 DNS（多个以空格分隔）。
+  # 通常填节点 /etc/resolv.conf 中的上游地址，部署前按集群实际填写。
+  upstreamServers: ""
   metricsPort: 9253
+  healthPort: 8080
+
+# 资源名对齐上游：node-local-dns
+nameOverride: node-local-dns
 
 serviceAccount:
   create: true
-  name: ""
+  name: node-local-dns
 
+# 与上游一致：仅 requests，不设 limits。
 resources:
   requests:
-    cpu: 100m
-    memory: 70Mi
-  limits:
-    memory: 170Mi
+    cpu: 25m
+    memory: 5Mi
 
-# 允许调度到 Master / 控制面节点。
+priorityClassName: system-node-critical
+
 tolerations:
-  - operator: Exists
-    effect: NoSchedule
-  - operator: Exists
-    effect: NoExecute
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+  - effect: NoSchedule
+    operator: Exists
 
 nodeSelector: {}
 affinity: {}
-priorityClassName: ""
-
-# 额外挂载（例如节点 systemd-resolved 的 resolv.conf）。
-extraVolumes: []
-extraVolumeMounts: []

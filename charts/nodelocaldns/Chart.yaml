@@ -1,9 +1,10 @@
 apiVersion: v2
 name: nodelocaldns
-description: NodeLocal DNSCache DaemonSet for cluster DNS caching (production skeleton for Kubernetes 1.37)
+description: NodeLocal DNSCache DaemonSet, rendered from upstream kubernetes nodelocaldns.yaml (Kubernetes 1.37 skeleton)
 type: application
 version: "1.37.2"
-appVersion: "1.37.2"
+# 镜像版本以上游 nodelocaldns.yaml 为准
+appVersion: "1.27.1"
 keywords:
   - dns
   - nodelocaldns

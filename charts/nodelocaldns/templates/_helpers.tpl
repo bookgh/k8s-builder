@@ -11,11 +11,12 @@
 {{- end }}
 
 {{- define "nodelocaldns.labels" -}}
+k8s-app: node-local-dns
+kubernetes.io/cluster-service: "true"
 app.kubernetes.io/name: {{ include "nodelocaldns.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-k8s-app: nodelocaldns
 {{- end }}
 
 {{- define "nodelocaldns.serviceAccountName" -}}
