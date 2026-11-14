@@ -48,6 +48,20 @@ ETCD_IPS=("${MASTER_IPS[@]}"); ETCD_NAMES=("${MASTER_NAMES[@]}")
 ALL_IPS=("${MASTER_IPS[@]}" "${WORKER_IPS[@]}")
 ALL_NAMES=("${MASTER_NAMES[@]}" "${WORKER_NAMES[@]}")
 
+# ---- 免密 / 初始化目标：集群节点 + 独立 Harbor 节点（不在 NODES 表时追加）----
+INIT_IPS=("${ALL_IPS[@]}")
+INIT_NAMES=("${ALL_NAMES[@]}")
+if [[ "${INSTALL_HARBOR:-false}" == "true" && -n "${HARBOR_NODE_IP:-}" ]]; then
+  harbor_in_list="false"
+  for ip in "${ALL_IPS[@]}"; do
+    if [[ "${ip}" == "${HARBOR_NODE_IP}" ]]; then harbor_in_list="true"; fi
+  done
+  if [[ "${harbor_in_list}" != "true" ]]; then
+    INIT_IPS+=("${HARBOR_NODE_IP}")
+    INIT_NAMES+=("harbor")
+  fi
+fi
+
 # ---- 部署节点：未配置则取首个 Master ----
 # 部署节点可为 NODES 表内或表外任意可达机器，不要求属于 Master 列表。
 if [[ -z "${DEPLOY_IP:-}" ]]; then DEPLOY_IP="${MASTER_IPS[0]}"; fi
